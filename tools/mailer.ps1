@@ -44,6 +44,84 @@ function Read-MimeText {
 }
 function New-MessageId { return "<jw.$([guid]::NewGuid().ToString('N'))@job-watcher.mail>" }
 
+# ---------- IMAP helpers (minimal, SSL, no external deps) ----------
+# NOTE: defined BEFORE the command switch so they exist when commands run.
+
+function Invoke-ImapSession([string]$user, [string]$pass, [scriptblock]$script) {
+    Add-Type -AssemblyName System.Net.Security -ErrorAction SilentlyContinue
+    Add-Type -AssemblyName System.Net.Sockets -ErrorAction SilentlyContinue
+    $tcp = [System.Net.Sockets.TcpClient]::new("imap.gmail.com", 993)
+    try {
+        $ssl = [System.Net.Security.SslStream]::new($tcp.GetStream())
+        $ssl.AuthenticateAsClient("imap.gmail.com")
+        $rd = [System.IO.StreamReader]::new($ssl, [Text.Encoding]::ASCII)
+        $script:tagN = 0
+        $null = $rd.ReadLine()   # greeting
+        function T([string]$c) {
+            $script:tagN++
+            $tag = "A$script:tagN"
+            $bytes = [Text.Encoding]::ASCII.GetBytes("$tag $c`r`n")
+            $ssl.Write($bytes, 0, $bytes.Length)
+            $lines = @()
+            while ($true) {
+                $line = $rd.ReadLine()
+                $lines += $line
+                if ($line -match "^$tag ") { break }
+            }
+            $status = ($lines | Where-Object { $_ -match "^$tag " } | Select-Object -First 1)
+            if ($status -notmatch "^$tag OK") { throw "IMAP error: $status" }
+            return $lines
+        }
+        $null = T "LOGIN ""$user"" ""$pass"""
+        $result = & $script $ssl $rd ${function:T}
+        $null = T "LOGOUT"
+        return $result
+    } finally { $tcp.Close() }
+}
+
+function Get-DraftFolder($ssl, $rd, $T) {
+    $list = T 'LIST "" "*"'
+    foreach ($l in $list) { if ($l -match '\\Drafts') { if ($l -match '"([^"]+)"\s*$') { return $Matches[1] } } }
+    return '"[Gmail]/Drafts"'
+}
+
+function Invoke-ImapDraft([string]$user, [string]$pass, [string]$mime) {
+    Invoke-ImapSession $user $pass {
+        param($ssl, $rd, $T)
+        $folder = Get-DraftFolder $ssl $rd $T
+        $bytes = [Text.Encoding]::UTF8.GetBytes($mime)
+        $cmd = "X1 APPEND $folder (\Draft) {$($bytes.Length)}"
+        $cmdBytes = [Text.Encoding]::ASCII.GetBytes("$cmd`r`n")
+        $ssl.Write($cmdBytes, 0, $cmdBytes.Length)
+        $cont = $rd.ReadLine()
+        if ($cont -notmatch '^\+') { throw "expected continuation, got: $cont" }
+        $ssl.Write($bytes, 0, $bytes.Length)
+        $ssl.Write([Text.Encoding]::ASCII.GetBytes("`r`n"), 0, 2)
+        $lines = @()
+        while ($true) { $line = $rd.ReadLine(); $lines += $line; if ($line -match "^X1 ") { break } }
+        if ($lines[0] -notmatch "^X1 OK") { throw "APPEND failed: $($lines[0])" }
+        return $folder
+    }
+}
+
+function Invoke-ImapSearchFrom([string]$user, [string]$pass, [string]$address, [string]$since) {
+    Invoke-ImapSession $user $pass {
+        param($ssl, $rd, $T)
+        $null = T 'SELECT "INBOX"'
+        $crit = "FROM ""$address"""
+        if ($since) {
+            $d = [datetime]::Parse($since)
+            $crit += " SINCE $($d.ToString('dd-MMM-yyyy'))"
+        }
+        $lines = T "SEARCH $crit"
+        $searchLine = ($lines | Where-Object { $_ -match '^\* SEARCH' } | Select-Object -First 1)
+        if (-not $searchLine) { return 0 }
+        $nums = ($searchLine -replace '^\* SEARCH', '').Trim()
+        if (-not $nums) { return 0 }
+        return ($nums -split '\s+').Count
+    }
+}
+
 switch ($Cmd) {
 
     "whoami" { Out @{ ok = $true; email = $GUser } }
@@ -100,74 +178,3 @@ switch ($Cmd) {
     default { Fail "unknown command: $Cmd (use whoami | send | draft | check-reply)" }
 }
 
-# ---------- IMAP helpers (minimal, SSL, no external deps) ----------
-
-function Invoke-ImapSession([string]$user, [string]$pass, [scriptblock]$script) {
-    $tcp = [System.Net.Sockets.TcpClient]::new("imap.gmail.com", 993)
-    try {
-        $ssl = [System.Net.SslStream]::new($tcp.GetStream())
-        $ssl.AuthenticateAsClient("imap.gmail.com")
-        $rd = [System.IO.StreamReader]::new($ssl, [Text.Encoding]::ASCII)
-        $script:tagN = 0
-        $null = $rd.ReadLine()   # greeting
-        function T([string]$c) {
-            $script:tagN++
-            $tag = "A$script:tagN"
-            $ssl.Write([Text.Encoding]::ASCII.GetBytes("$tag $c`r`n"), 0, ("$tag $c`r`n").Length)
-            $lines = @()
-            while ($true) {
-                $line = $rd.ReadLine()
-                $lines += $line
-                if ($line -match "^$tag ") { break }
-            }
-            $status = ($lines | Where-Object { $_ -match "^$tag " } | Select-Object -First 1)
-            if ($status -notmatch " OK$") { throw "IMAP error: $status" }
-            return $lines
-        }
-        $null = T "LOGIN ""$user"" ""$pass"""
-        $result = & $script $ssl $rd ${function:T}
-        $null = T "LOGOUT"
-        return $result
-    } finally { $tcp.Close() }
-}
-
-function Get-DraftFolder($ssl, $rd, $T) {
-    $list = T 'LIST "" "*"'
-    foreach ($l in $list) { if ($l -match '\\Drafts') { if ($l -match '"([^"]+)"\s*$') { return $Matches[1] } } }
-    return '"[Gmail]/Drafts"'
-}
-
-function Invoke-ImapDraft([string]$user, [string]$pass, [string]$mime) {
-    Invoke-ImapSession $user $pass {
-        param($ssl, $rd, $T)
-        $folder = Get-DraftFolder $ssl $rd $T
-        $bytes = [Text.Encoding]::UTF8.GetBytes($mime)
-        $ssl.Write([Text.Encoding]::ASCII.GetBytes("X1 APPEND $folder (\Draft) {$($bytes.Length)}`r`n"), 0, ("X1 APPEND $folder (\Draft) {$($bytes.Length)}`r`n").Length)
-        $cont = $rd.ReadLine()
-        if ($cont -notmatch '^\+') { throw "expected continuation, got: $cont" }
-        $ssl.Write($bytes, 0, $bytes.Length)
-        $ssl.Write([Text.Encoding]::ASCII.GetBytes("`r`n"), 0, 2)
-        $lines = @()
-        while ($true) { $line = $rd.ReadLine(); if ($line -match "^X1 ") { $lines += $line; break } }
-        if ($lines[0] -notmatch " OK$") { throw "APPEND failed: $($lines[0])" }
-        return $folder
-    }
-}
-
-function Invoke-ImapSearchFrom([string]$user, [string]$pass, [string]$address, [string]$since) {
-    Invoke-ImapSession $user $pass {
-        param($ssl, $rd, $T)
-        $null = T 'SELECT "INBOX"'
-        $crit = "FROM ""$address"""
-        if ($since) {
-            $d = [datetime]::Parse($since)
-            $crit += " SINCE $($d.ToString('dd-MMM-yyyy'))"
-        }
-        $lines = T "SEARCH $crit"
-        $searchLine = ($lines | Where-Object { $_ -match '^\* SEARCH' } | Select-Object -First 1)
-        if (-not $searchLine) { return 0 }
-        $nums = ($searchLine -replace '^\* SEARCH', '').Trim()
-        if (-not $nums) { return 0 }
-        return ($nums -split '\s+').Count
-    }
-}
