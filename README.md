@@ -73,9 +73,10 @@ or `npm start` (set the env vars from `.env.example` first).
 4. **Brave + CDP** - the pipeline drives your logged-in Brave over CDP on port
    9222. `run-watch.ps1` / `run-apply.ps1` start or restart Brave with the debug
    flag automatically. Log into LinkedIn and Gmail in that browser profile.
-5. **Personalize** - edit `answers.md` (screening answers), the CV matrix and the
-   Gmail sender account in `opencode-apply-prompt.md`, and the search keywords /
-   locations in `opencode-prompt.md`. These contain the owner's personal data by
+5. **Personalize** - edit `answers.md` (screening answers + Open Questions), the
+   CV matrix, contact details and Gmail sender account in
+   `.opencode/agents/apply.md`, and the search keywords/locations in
+   `.opencode/agents/watch.md`. These contain the owner's personal data by
    default - replace before use.
 6. **Gmail sending** - follow `docs/EMAIL_SETUP.md`: enable 2-Step Verification,
    create a Google App Password, put `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `.env`.
@@ -90,10 +91,11 @@ or `npm start` (set the env vars from `.env.example` first).
 
 | File | Purpose |
 |---|---|
-| `opencode-prompt.md` | Full instructions for the hourly watch session |
-| `opencode-apply-prompt.md` | Full instructions for the apply session (CV matrix, email rules, ping flow, follow-ups) |
-| `answers.md` | Screening question bank - source of truth for form answers |
-| `run-all.ps1` / `run-watch.ps1` / `run-apply.ps1` | Session runners (lock files, Brave/CDP check, opencode launch) |
+| `.opencode/agents/watch.md` | The watch agent: hourly searches, gates, scrape-health watchdog, SELFTEST mode, uncapped storage |
+| `.opencode/agents/apply.md` | The apply agent: queue drain (newest first), Easy Apply / external ATS forms / email via `tools\mailer.ps1`, ping flow, follow-ups, SELFCHECK mode |
+| `answers.md` | Screening question bank + Open Questions (self-growing) - source of truth for form answers |
+| `tools/mailer.ps1` | SMTP send / IMAP draft / IMAP reply-check helper (Google App Password) |
+| `run-all.ps1` / `run-watch.ps1` / `run-apply.ps1` | Session runners (lock files, Brave/CDP check, `opencode run --agent ...`) |
 | `start/stop-watcher.ps1` + `START/STOP .bat` | Enable/disable the hourly scheduled task |
 | `watcher.mjs` | Legacy standalone Node watcher |
 | `Dockerfile` | Container for the legacy watcher |

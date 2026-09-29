@@ -43,10 +43,10 @@ if (-not $cdpUp) {
     }
 }
 
-$prompt = Get-Content "$dir\opencode-apply-prompt.md" -Raw
-Log "=== starting opencode apply session (glm-5.3-flash) ==="
-& "C:\Users\devel\.bun\bin\opencode.exe" run --model zai-coding-plan/glm-5.3-flash $prompt *>> $log
-Log "=== apply session finished (exit $LASTEXITCODE) ==="
+Log "=== starting apply agent ==="
+Set-Location $dir
+& "C:\Users\devel\.bun\bin\opencode.exe" run --dir $dir --agent apply -m "zai-coding-plan/glm-5.3-flash" "Run the apply session now." *>> $log
+Log "=== apply agent finished (exit $LASTEXITCODE) ==="
 
 } finally {
     Remove-Item $lock -Force -ErrorAction SilentlyContinue

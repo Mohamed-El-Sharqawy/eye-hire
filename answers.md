@@ -50,3 +50,10 @@ cannot be left open safely.
   referencing their product/stack only if obvious from the post; otherwise PING.
 - Anything else not covered above (essays, cover letters, background questions,
   certifications, portfolio URLs): optional -> leave blank; required -> PING flow.
+
+## Open Questions
+
+The apply session appends required form questions it could not answer here.
+Fill in an answer after each '->' and delete the line once consumed - future
+runs will then answer that question automatically.
+
