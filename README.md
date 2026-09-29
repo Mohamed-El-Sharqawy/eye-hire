@@ -18,11 +18,11 @@ The project has two components:
         v
  run-all.ps1
    |-- run-watch.ps1  -->  opencode headless session (glm-5.3-flash)
-   |                         + prompt: opencode-prompt.md
+   |                         + agent: .opencode/agents/watch.md
    |                         drives logged-in Brave via CDP (:9222)
    |                         => searches LinkedIn, stores fresh jobs in Notion
    |-- run-apply.ps1  -->  opencode headless session
-                            + prompt: opencode-apply-prompt.md
+                            + agent: .opencode/agents/apply.md
                             + answers.md (screening question bank)
                             => applies to every pending row, records outcome
 ```
@@ -117,3 +117,4 @@ Automating LinkedIn may violate their Terms of Service and job boards may have
 their own rules. This project was built for personal use; share and use it
 responsibly and at your own risk. Don't spam recruiters - the world has enough
 of that already.
+
