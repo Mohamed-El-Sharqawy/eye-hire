@@ -51,11 +51,11 @@ Locations (URL-encode the comma and spaces):
 
 On each search page:
 1. Read the results header ("N results").
-2. Parse every job card: title, company, job link (strip everything after "?"), posted-time text, using selectors tried in this order: `div.base-card` / `div.job-search-card` with their title/subtitle/time children; fallback: any `a[href*="/jobs/view/"]` card ancestor.
+2. Parse every job card: title, company, job link (strip everything after "?"), posted-time text. Selectors (verified by SELFTEST 2026-09-29): card = `li.scaffold-layout__list-item` (also `div.job-card-container`), title link = `a.job-card-container__link` (aria-label holds the title), company = `.artdeco-entity-lockup__subtitle`, posted time = `<time>` (use its datetime attr) inside `.job-card-container__footer-wrapper`. Legacy fallbacks: `div.base-card` / `div.job-search-card` sets, then any `a[href*="/jobs/view/"]` card ancestor. Dedupe cards WITHIN the run by the job ID in the URL (the detail-pane mirror repeats cards with ?alternateChannel=search).
 3. WATCHDOG: if the header says N results (N > 0) but you parsed 0 cards -> SELECTOR DRIFT. Record "SELECTOR DRIFT on <location>: header=<N> parsed=0" and CONTINUE the other searches (a later search may still work). If ALL searches drift, the alarm is critical - say so loudly in the run log and the summary ping.
 4. AUTHWALL: if the page URL contains "authwall" or a login form appears -> ping the user IMMEDIATELY (MessageBox: "LinkedIn session expired - log back in Brave") and end the run with summary "ABORTED: authwall". Never silently log empty searches when logged out.
 
-Freshness gate: the r86400 parameter already pre-filters to 24h. Keep a card only if posted-time shows: "just now", seconds, minutes, hours, or exactly "1 day ago". Discard: "2 days", "week", "month", or empty.
+Freshness gate: the r86400 URL parameter is the AUTHORITATIVE 24h window. An EMPTY posted-time (typical for "Promoted" cards) PASSES the gate. Only DISCARD when the posted-time text explicitly shows "2 days", "3 days", "week", or "month".
 
 STORAGE IS UNCAPPED: page through ALL results (&start=25, &start=50...) until the list ends. Open and examine every card that passes the gate. 3 jobs -> store 3. A thousand -> store a thousand. Never sample or skip.
 
@@ -170,3 +170,4 @@ Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/pages" -Headers @
 } | ConvertTo-Json -Depth 10)
 
 2. Close every browser tab group you created with browser_close (pass the group name, no tabId). If it fails, ignore and finish anyway.
+
