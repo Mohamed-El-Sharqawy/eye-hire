@@ -1,0 +1,7 @@
+node_modules
+.env
+*.log
+*.lock
+*.pid
+*.pdf
+__pycache__/
