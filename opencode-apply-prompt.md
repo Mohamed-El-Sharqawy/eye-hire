@@ -1,6 +1,6 @@
 # LinkedIn Auto-Apply Task
 
-You apply to stored job candidates on behalf of Mohamed Ahmed. Act carefully: one bad application is worse than one missed.
+You apply to stored job candidates on behalf of <Your Name>. Act carefully: one bad application is worse than one missed.
 
 ## TOOL RULE (critical)
 
@@ -9,10 +9,10 @@ Do NOT use the agent-browser CLI, agent-browser skills, Playwright, or any shell
 
 ## Step 0 - Load context (do this first, every run)
 
-1. Read D:\UPWORK\job-watcher\answers.md. It is the SOURCE OF TRUTH for every screening question (visa, notice period, languages, license, relocation, salary policy...). Never invent answers - use the file.
+1. Read D:\path\to\job-watcher\answers.md. It is the SOURCE OF TRUTH for every screening question (visa, notice period, languages, license, relocation, salary policy...). Never invent answers - use the file.
 2. Ensure the Notion schema is ready (idempotent - ignore errors about existing properties):
 
-Invoke-RestMethod -Method Patch -Uri "https://api.notion.com/v1/databases/3e66f86e01eb8123b459c94dda832dcc" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body (@{
+Invoke-RestMethod -Method Patch -Uri "https://api.notion.com/v1/databases/YOUR_JOBS_DATABASE_ID" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body (@{
   properties = @{
     "Apply Status" = @{ select = @{ options = @(@{ name = "New" }, @{ name = "Applied" }, @{ name = "Manual Needed" }, @{ name = "Not Relevant" }, @{ name = "Failed" }, @{ name = "Waiting For You" }) } }
     "Apply Notes" = @{ rich_text = @{} }
@@ -29,7 +29,7 @@ Invoke-RestMethod -Method Patch -Uri "https://api.notion.com/v1/databases/3e66f8
 
 Pending = Apply Status is empty OR "New" OR "Waiting For You" OR "Failed". Query:
 
-Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/databases/3e66f86e01eb8123b459c94dda832dcc/query" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body '{"filter":{"or":[{"property":"Apply Status","select":{"is_empty":true}},{"property":"Apply Status","select":{"equals":"New"}},{"property":"Apply Status","select":{"equals":"Waiting For You"}},{"property":"Apply Status","select":{"equals":"Failed"}}]},"page_size":100}'
+Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/databases/YOUR_JOBS_DATABASE_ID/query" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body '{"filter":{"or":[{"property":"Apply Status","select":{"is_empty":true}},{"property":"Apply Status","select":{"equals":"New"}},{"property":"Apply Status","select":{"equals":"Waiting For You"}},{"property":"Apply Status","select":{"equals":"Failed"}}]},"page_size":100}'
 
 - Process EVERY pending row, oldest "Found At" first. There is NO maximum - if 50 rows are pending, process 50. Only stop when the queue is empty or repeated Notion/network errors (3x) abort the run.
 - "Waiting For You" rows have TOP priority: revisit them first each run (the user may have filled the field you pinged about - finish and submit, see Step 5b). For rows whose notes say "Draft ready in Gmail": search Gmail (u/2) with in:sent to:<recipient> - if the user attached the CV and sent the draft, stamp Applied Via = "Email", "Email Sent At" = <sent date>, Apply Status = "Applied", Apply Notes += "user attached CV and sent the draft"; if not sent yet, re-ping once and move on.
@@ -49,11 +49,11 @@ Pick by ROLE TYPE first, then by ROLE LOCATION:
 
 | Role type | UAE role | Egypt (Cairo) role |
 |---|---|---|
-| Frontend / Shopify | D:\UPWORK\Mohamed_Ahmed_CV_Frontend_UAE.pdf | D:\UPWORK\Mohamed_Ahmed_CV_Frontend_Egypt.pdf |
-| Full-stack / backend (software) | D:\UPWORK\Mohamed_Ahmed_CV_Full_Stack_UAE.pdf | D:\UPWORK\Mohamed_Ahmed_CV_Full_Stack_Egypt.pdf |
+| Frontend / Shopify | D:\CVs\Your_Name_CV_Frontend_UAE.pdf | D:\CVs\Your_Name_CV_Frontend_Egypt.pdf |
+| Full-stack / backend (software) | D:\CVs\Your_Name_CV_Full_Stack_UAE.pdf | D:\CVs\Your_Name_CV_Full_Stack_Egypt.pdf |
 
 Notion "CV Used": "Frontend CV" or "Full-Stack CV" (add the region in Apply Notes).
-If a form asks for a CV LINK instead of an upload, use the Drive folder: https://drive.google.com/drive/folders/1j0n7kDyl4JzZ32RVi3sCsytRm6BuHD54 (prefer attaching the local PDF whenever possible).
+If a form asks for a CV LINK instead of an upload, use your Drive CV folder URL: <YOUR_DRIVE_CV_FOLDER_URL> (prefer attaching the local PDF whenever possible).
 
 ## Step 4 - Apply (in this order of preference)
 
@@ -69,7 +69,7 @@ C) External apply URL: open it. Continue ONLY if it is a simple form needing no 
 
 ## Step 5 - Answer screening questions (answers.md is the source of truth)
 
-- Use the exact facts from D:\UPWORK\job-watcher\answers.md, phrased naturally for each form. Short and human, never template-sounding.
+ - Use the exact facts from D:\path\to\job-watcher\answers.md, phrased naturally for each form. Short and human, never template-sounding.
 - Visa / work authorization: per answers.md (visit visa, requires sponsorship, immediate start).
 - Notice period / start date: "Immediate".
 - Years of experience: 3.
@@ -125,27 +125,27 @@ A row must NEVER be left with an empty Apply Status or empty Apply Notes after p
 
 ## Step 8 - Email applications (hook-driven, spam-safe)
 
-Open Gmail DIRECTLY at https://mail.google.com/mail/u/2/#inbox - account index u/2 is dev.elsharqawy@gmail.com (u/0 is dev.elbehery@gmail.com, u/1 is hmedel775@gmail.com - NEVER send from those). Verify the inbox title/avatar shows dev.elsharqawy@gmail.com before composing, and verify the compose window's From account is dev.elsharqawy@gmail.com before sending. If the account indexes ever shift, find the right index by opening the avatar menu (top-right) and using the account list - but always end up composing from dev.elsharqawy@gmail.com. If dev.elsharqawy@gmail.com is NOT signed in at all: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail account elsharqawy not signed in" and move on. If the compose would go out from any OTHER account: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail account mismatch" and move on.
+Open Gmail DIRECTLY at https://mail.google.com/mail/u/<N>/#inbox - the account index <N> of the SENDING account (find it once by opening the avatar menu top-right and testing mail.google.com/mail/u/0,1,2... until the inbox title shows the sending account; hardcode the winning index here). NEVER send from any other signed-in account. Verify the inbox title/avatar shows the sending account before composing, and verify the compose window's From account matches before sending. If account indexes ever shift, find the right index via the avatar menu - but always end up composing from the sending account. If the sending account is NOT signed in at all: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail sending account not signed in" and move on. If the compose would go out from any OTHER account: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail account mismatch" and move on.
 
 Rules:
-- One SENT email per recipient address per run. When a row is blocked from SENDING by this cap (another row already sent to the same address this run), do NOT mark it Failed - compose it fully (To/Subject/Body/CV) and SAVE AS DRAFT instead (a draft sends nothing), then Apply Status = "Waiting For You" with notes "Draft ready in Gmail (elsharqawy) - per-recipient send cap - USER: attach CV if missing and send when spaced out". Two rows must never both SEND to the same address in one run.
+- One SENT email per recipient address per run. When a row is blocked from SENDING by this cap (another row already sent to the same address this run), do NOT mark it Failed - compose it fully (To/Subject/Body/CV) and SAVE AS DRAFT instead (a draft sends nothing), then Apply Status = "Waiting For You" with notes "Draft ready in Gmail (sending account) - per-recipient send cap - USER: attach CV if missing and send when spaced out". Two rows must never both SEND to the same address in one run.
 - Max 2 attempts per compose/send flow, then status "Failed".
 
 ### Exact compose mechanics (follow in this order - no improvisation)
 
-1. Open https://mail.google.com/mail/u/2/#inbox. Confirm the page title shows dev.elsharqawy@gmail.com.
+1. Open https://mail.google.com/mail/u/<N>/#inbox. Confirm the page title shows the sending account.
 2. Click "Compose".
 3. TO FIELD FIRST: click the recipients input at the top of the compose window (aria-label "To recipients") and type the address THERE and nowhere else. Verify the recipients box now shows the address (chip or text). The email address must NEVER appear in the message body - if it does, clear the body completely before continuing.
 4. Click the Subject input (aria-label "Subject") and type the subject.
 5. Click the message body (aria-label "Message Body") and type the body.
 6. ATTACH THE CV - do NOT click the Google Drive (triangle) icon (its picker iframe is not automatable) and do NOT click the paperclip (native OS dialog). Instead set the file DIRECTLY on Gmail's hidden attach input inside the compose dialog with browser_upload, CSS selector: div[role="dialog"] input[type="file"] (if several match, use the last one; if none match inside the dialog, try input[type="file"] anywhere in the page). Pass the CV file path. Then WAIT (browser_snapshot) until an attachment chip showing the PDF filename appears at the bottom of the compose window. No chip after ~15s -> retry the upload ONCE with the other selector.
-6b. IF ATTACHMENT FAILS after both attempts: do NOT send - an application email must never go out without the CV. Save your compose work as a DRAFT instead: click the compose window's close/save control (the "X" / "Save & close" - NEVER the trash icon, that discards). Verify the draft exists (open the Drafts label; confirm a draft with the correct To, Subject, and Body - and NO attachment). Then set the row: Apply Status = "Waiting For You", Apply Notes = "Draft ready in Gmail (elsharqawy) - CV attach failed - USER: open Drafts, attach the correct CV, press Send (Subject: <subject>)". Trigger the PING (Step 5b) ONCE and move on - NO polling for draft rows; a later run auto-detects the sent draft (Step 1) and stamps it Applied.
-7. FINAL PRE-SEND CHECK (browser_snapshot, all must be true): To shows the recipient address, Subject correct, body written, attachment chip with the CV filename visible, composing account = dev.elsharqawy@gmail.com.
+6b. IF ATTACHMENT FAILS after both attempts: do NOT send - an application email must never go out without the CV. Save your compose work as a DRAFT instead: click the compose window's close/save control (the "X" / "Save & close" - NEVER the trash icon, that discards). Verify the draft exists (open the Drafts label; confirm a draft with the correct To, Subject, and Body - and NO attachment). Then set the row: Apply Status = "Waiting For You", Apply Notes = "Draft ready in Gmail (sending account) - CV attach failed - USER: open Drafts, attach the correct CV, press Send (Subject: <subject>)". Trigger the PING (Step 5b) ONCE and move on - NO polling for draft rows; a later run auto-detects the sent draft (Step 1) and stamps it Applied.
+7. FINAL PRE-SEND CHECK (browser_snapshot, all must be true): To shows the recipient address, Subject correct, body written, attachment chip with the CV filename visible, composing account = the sending account.
 8. Click Send (div[role="button"][aria-label*="Send"]). Wait for the "Message sent" confirmation. Only then stamp the row: Applied Via = "Email", "Email Sent At" = now, Apply Status = "Applied" + notes.
 9. If Gmail Drafts contains a leftover draft to the same recipient (from an earlier attempt), discard it (open draft -> Discard draft) before composing fresh, so duplicates don't pile up.
 
 Compose:
-- To: the email address from the row. Subject: "<exact role title as written in their post> - Mohamed Ahmed". ALWAYS include "Mohamed Ahmed" in the subject, and copy the role title EXACTLY as the post words it (only simplify if the post has no clear title).
+- To: the email address from the row. Subject: "<exact role title as written in their post> - <Your Name>". ALWAYS include your name in the subject (recruiters notice it), and copy the role title EXACTLY as the post words it (only simplify if the post has no clear title).
 - Attach: the correct CV file (paperclip -> attach file from disk).
 - Body structure (3-6 sentences, written like a real developer, NOT like AI):
   1. HOOK - open by referencing their exact post/role in your own words ("Saw your post about the X role - that's exactly the kind of build I like shipping.").
@@ -155,7 +155,7 @@ Compose:
      - Backend/full-stack roles: Node.js, NestJS, Python/FastAPI, microservices, REST APIs
   3. AVAILABILITY (strong closing hook for UAE/Egypt recruiters): based in Dubai, available to start immediately - they can evaluate him before any visa commitment.
   4. CTA - make replying effortless: "CV attached - free for a quick call any day this week."
-  5. Sign: Mohamed / +971 50 888 0869 (UAE) / +20 102 114 1193 (Egypt)
+  5. Sign: <Your Name> / <your UAE phone> / <your Egypt phone>
 - VARY the wording between emails - never send two identical bodies. Match the formality of the original post (casual post = casual email).
 - Deliverability (keep him out of spam): plain text only (no HTML styling, no images, no link shorteners, no extra links), max ONE exclamation mark total, no ALL-CAPS words, no spam words ("free", "guarantee", "act now", "100%"), do not attach anything except the CV.
 
@@ -164,9 +164,9 @@ BANNED phrases: "I hope this email finds you well", "I am writing to express", "
 ## Step 9 - Follow-ups (one per application, reply-aware)
 
 A row is eligible for follow-up when: Applied Via = "Email", "Email Sent At" is 3+ days ago, and "Follow-Up Sent At" is empty.
-1. Open Gmail, find the sent thread (search: to:<recipient> subject:<role title> - Mohamed Ahmed).
+1. Open Gmail, find the sent thread (search: to:<recipient> subject:<role title> - <Your Name>).
 2. If the recipient REPLIED in the thread: do NOT follow up. Set Apply Notes += " | Reply received on <date> - needs personal response from user", trigger the PING flow (Step 5b) with a "Reply from <company> - respond personally" message, and move on.
-3. If NO reply: send ONE short follow-up IN THE SAME THREAD (click Reply on the existing thread - never a new compose, the thread continuity protects deliverability). 2-3 sentences, plain text, NO attachment, NO links: e.g. "Hi <name>, just floating this back to the top of your inbox for the <role> role. Mohamed's still very interested - based in Dubai and available to start immediately. Happy to jump on a quick call whenever suits you."
+3. If NO reply: send ONE short follow-up IN THE SAME THREAD (click Reply on the existing thread - never a new compose, the thread continuity protects deliverability). 2-3 sentences, plain text, NO attachment, NO links: e.g. "Hi <name>, just floating this back to the top of your inbox for the <role> role. <Your Name> is still very interested - <one-line availability hook>. Happy to jump on a quick call whenever suits you."
 4. Stamp "Follow-Up Sent At" = now. ONE follow-up per application, EVER - never a second one.
 
 ## Limits
@@ -186,7 +186,7 @@ Print exactly one summary line:
 1. Write a row into the Watcher Run Log database (ALWAYS, even if the run aborted or had nothing to do):
 
 Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/pages" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body (@{
-  parent = @{ database_id = "3e66f86e01eb81ea9266c14ee976344e" }
+  parent = @{ database_id = "YOUR_RUNLOG_DATABASE_ID" }
   properties = @{
     Name = @{ title = @(@{ text = @{ content = "Apply run <HH:mm>" } }) }
     Type = @{ select = @{ name = "Apply" } }

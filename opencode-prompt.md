@@ -98,7 +98,7 @@ If unsure about relevance, skip it. Do not store it and do not apply the gate la
 
 For each candidate, before saving, check if its link already exists in the database:
 
-Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/databases/3e66f86e01eb8123b459c94dda832dcc/query" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body '{"filter":{"property":"Link","url":{"equals":"JOB_LINK_HERE"}}}'
+Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/databases/YOUR_JOBS_DATABASE_ID/query" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body '{"filter":{"property":"Link","url":{"equals":"JOB_LINK_HERE"}}}'
 
 If results array is non-empty, the job is a DUPLICATE - skip it. Never insert the same link twice.
 
@@ -107,7 +107,7 @@ If results array is non-empty, the job is a DUPLICATE - skip it. Never insert th
 For a new job, insert one page (ALWAYS set Apply Status = "New" so the applier picks it up):
 
 Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/pages" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body (@{
-  parent = @{ database_id = "3e66f86e01eb8123b459c94dda832dcc" }
+  parent = @{ database_id = "YOUR_JOBS_DATABASE_ID" }
   properties = @{
     Name = @{ title = @(@{ text = @{ content = "<job title>" } }) }
     Company = @{ rich_text = @(@{ text = @{ content = "<company>" } }) }
@@ -148,7 +148,7 @@ Print exactly one summary line:
 1. Write a row into the Watcher Run Log database (ALWAYS, even if the run aborted or found nothing):
 
 Invoke-RestMethod -Method Post -Uri "https://api.notion.com/v1/pages" -Headers @{ Authorization = "Bearer $env:NOTION_TOKEN"; "Notion-Version" = "2022-06-28"; "Content-Type" = "application/json" } -Body (@{
-  parent = @{ database_id = "3e66f86e01eb81ea9266c14ee976344e" }
+  parent = @{ database_id = "YOUR_RUNLOG_DATABASE_ID" }
   properties = @{
     Name = @{ title = @(@{ text = @{ content = "Search run <HH:mm>" } }) }
     Type = @{ select = @{ name = "Search" } }

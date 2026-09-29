@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Continue"
-$dir = "D:\UPWORK\job-watcher"
+$dir = $PSScriptRoot
 $log = "$dir\opencode-runs.log"
 $lock = "$dir\run.lock"
 
@@ -47,8 +47,8 @@ $cdpUp = (Test-NetConnection 127.0.0.1 -Port 9222 -InformationLevel Quiet -Warni
 if (-not $cdpUp) { Log "CDP still down after Brave start, aborting"; exit 1 }
 
 $prompt = Get-Content "$dir\opencode-prompt.md" -Raw
-Log "=== starting opencode session (glm-5.3-flash) ==="
-& "C:\Users\devel\.bun\bin\opencode.exe" run --model zai-coding-plan/glm-5.3-flash $prompt *>> $log
+Log "=== starting opencode session ==="
+& "opencode" run --model "glm-5.3-flash" $prompt *>> $log
 Log "=== session finished (exit $LASTEXITCODE) ==="
 
 } finally {

@@ -1,5 +1,5 @@
 $ErrorActionPreference = "Continue"
-$dir = "D:\UPWORK\job-watcher"
+$dir = $PSScriptRoot
 $log = "$dir\apply-runs.log"
 $lock = "$dir\apply.lock"
 
@@ -44,8 +44,8 @@ if (-not $cdpUp) {
 }
 
 $prompt = Get-Content "$dir\opencode-apply-prompt.md" -Raw
-Log "=== starting opencode apply session (glm-5.3-flash) ==="
-& "C:\Users\devel\.bun\bin\opencode.exe" run --model zai-coding-plan/glm-5.3-flash $prompt *>> $log
+Log "=== starting opencode apply session ==="
+& "opencode" run --model "glm-5.3-flash" $prompt *>> $log
 Log "=== apply session finished (exit $LASTEXITCODE) ==="
 
 } finally {

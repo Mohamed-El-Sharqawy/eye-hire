@@ -1,2 +1,4 @@
+' Launches run-all.ps1 fully hidden (no console window).
+' EDIT the two paths below to match your machine (pwsh.exe location and this folder).
 Set WshShell = CreateObject("WScript.Shell")
-WshShell.Run """C:\Program Files\WindowsApps\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\pwsh.exe"" -NoProfile -ExecutionPolicy Bypass -File ""D:\UPWORK\job-watcher\run-all.ps1""", 0, False
+WshShell.Run """C:\path\to\pwsh.exe"" -NoProfile -ExecutionPolicy Bypass -File ""C:\path\to\job-watcher\run-all.ps1""", 0, False

@@ -1,5 +1,5 @@
 $task = "LinkedInJobWatcher"
-$dir = "D:\UPWORK\job-watcher"
+$dir = $PSScriptRoot
 
 schtasks /Change /TN $task /DISABLE | Out-Null
 

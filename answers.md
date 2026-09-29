@@ -1,52 +1,46 @@
-# Candidate Profile & Screening Answers (source of truth)
+# Candidate Profile & Screening Answers (template)
 
-Candidate: Mohamed Ahmed
-This file is the apply session's single source of truth for screening questions.
-If a required form question is NOT answerable from this file or the CV, do NOT guess:
-use the PING flow (Waiting For You) and wait, or flag Manual Needed only if the form
-cannot be left open safely.
+Fill this in with YOUR real answers - the apply session reads it as the single
+source of truth for screening questions. If a required form question is NOT
+answerable from this file or the CV, the session will never guess: it pings you
+(Windows notification) and marks the row "Waiting For You", or flags
+Manual Needed only if the form cannot be left open safely.
 
 ## Contact & basics
 
-- Full name: Mohamed Ahmed
-- Email (sending account): dev.elsharqawy@gmail.com
-- Phone UAE: +971 50 888 0869
-- Phone Egypt: +20 102 114 1193
-- Current location: Dubai, UAE (renting an apartment there)
-- Origin: Cairo, Egypt
-- LinkedIn/portfolio/GitHub URLs: NOT PROVIDED - if a form requires one and it is not
-  on the CV, use the PING flow.
+- Full name: <Your Name>
+- Email (sending account): <your.sending@gmail.com>
+- Phone <Country A>: <+XX XXX XXX XXXX>
+- Phone <Country B>: <+XX XXX XXX XXXX>
+- Current location: <City, Country>
+- Origin: <City, Country>
+- LinkedIn/portfolio/GitHub URLs: <URL or "NOT PROVIDED - PING if required">
 
 ## Experience
 
-- Years of experience: 3 (frontend and full-stack alike)
-- Frontend: production React / TypeScript apps (~3 years)
-- E-commerce: built e-commerce websites from scratch with Next.js (frontend + backend);
-  built Shopify stores that generate strong real revenues
-- Enterprise / government / SaaS: national-scale government platforms serving 1M+ users;
-  Facility Management ERP modules
-- Backend / full-stack: Node.js, NestJS, Python/FastAPI, microservices, REST APIs
+- Years of experience: <N>
+- Frontend: <stack, years, notable work>
+- E-commerce: <relevant proof points>
+- Enterprise / government / SaaS: <relevant proof points with numbers>
+- Backend / full-stack: <languages, frameworks, architecture keywords>
 
 ## Screening answers (use these, rephrase naturally per form)
 
-- Visa status: "On visit visa in the UAE - requires employer sponsorship.
-  Available to start immediately, so the company can evaluate me on the job
-  before committing to the visa process." Short form: "Visit visa (sponsorship required)".
-- Work authorization / eligibility to work: Currently NOT authorized to work without
-  sponsorship (visit visa). If the form offers "require sponsorship" / "need visa
-  sponsorship" options, choose them. Answer honestly: requires sponsorship, available
-  to start immediately.
-- Notice period / earliest start date: "Immediate" / "Available immediately - no notice period".
+- Visa status: <e.g. "On visit visa - requires employer sponsorship. Available to
+  start immediately, so the company can evaluate me before committing to the visa
+  process.">
+- Work authorization / eligibility: <be honest; if the form offers a
+  "requires sponsorship" option, choose it>
+- Notice period / earliest start date: <e.g. "Immediate">
 - Salary expectations: NEVER ENTER ANY NUMBER OR RANGE. Policy: if the field is
-  optional, leave it blank. If it is REQUIRED, use the PING flow (Step 5b) - the user
-  will type it manually. Never invent, estimate, or write "open"/"negotiable" either -
-  required salary fields are ALWAYS a PING.
-- Languages: Arabic (native), English (fluent)
-- UAE driving license: No. Holds a valid Egyptian driving license and can drive.
-- Willing to relocate: Yes - already based in Dubai, UAE; open to any UAE emirate or
-  relocation to Cairo for the right role.
-- Work format: open to on-site, hybrid, and remote.
-- Reasons for leaving / why this company: not scripted - write a short honest line
-  referencing their product/stack only if obvious from the post; otherwise PING.
+  optional, leave it blank. If it is REQUIRED, use the PING flow (Step 5b) - the
+  user types it manually. Never invent, estimate, or write "open"/"negotiable"
+  either - required salary fields are ALWAYS a PING.
+- Languages: <e.g. Arabic (native), English (fluent)>
+- Driving license: <e.g. "No <country> license; holds a valid <other> license">
+- Willing to relocate: <yes/no + details>
+- Work format: <on-site / hybrid / remote>
+- Reasons for leaving / why this company: <short honest line referencing their
+  product/stack only if obvious from the post; otherwise PING>
 - Anything else not covered above (essays, cover letters, background questions,
   certifications, portfolio URLs): optional -> leave blank; required -> PING flow.
