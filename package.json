@@ -1,5 +1,5 @@
 {
-  "name": "job-watcher",
+  "name": "eye-hire",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,3 +10,4 @@
     "playwright": "1.49.0"
   }
 }
+
