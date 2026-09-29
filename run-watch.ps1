@@ -46,10 +46,10 @@ if (-not $cdpUp) {
 $cdpUp = (Test-NetConnection 127.0.0.1 -Port 9222 -InformationLevel Quiet -WarningAction SilentlyContinue)
 if (-not $cdpUp) { Log "CDP still down after Brave start, aborting"; exit 1 }
 
-$prompt = Get-Content "$dir\opencode-prompt.md" -Raw
-Log "=== starting opencode session ==="
-& "opencode" run --model "glm-5.3-flash" $prompt *>> $log
-Log "=== session finished (exit $LASTEXITCODE) ==="
+Log "=== starting watch agent ==="
+Set-Location $dir
+& "opencode" run --dir $dir --agent watch -m "glm-5.3-flash" "Run the hourly LinkedIn watch session now." *>> $log
+Log "=== watch agent finished (exit $LASTEXITCODE) ==="
 
 } finally {
     Remove-Item $lock -Force -ErrorAction SilentlyContinue

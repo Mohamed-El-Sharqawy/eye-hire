@@ -43,10 +43,10 @@ if (-not $cdpUp) {
     }
 }
 
-$prompt = Get-Content "$dir\opencode-apply-prompt.md" -Raw
-Log "=== starting opencode apply session ==="
-& "opencode" run --model "glm-5.3-flash" $prompt *>> $log
-Log "=== apply session finished (exit $LASTEXITCODE) ==="
+Log "=== starting apply agent ==="
+Set-Location $dir
+& "opencode" run --dir $dir --agent apply -m "glm-5.3-flash" "Run the apply session now." *>> $log
+Log "=== apply agent finished (exit $LASTEXITCODE) ==="
 
 } finally {
     Remove-Item $lock -Force -ErrorAction SilentlyContinue

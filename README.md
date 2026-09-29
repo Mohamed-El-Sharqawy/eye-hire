@@ -18,11 +18,11 @@ The project has two components:
         v
  run-all.ps1
    |-- run-watch.ps1  -->  opencode headless session (glm-5.3-flash)
-   |                         + prompt: opencode-prompt.md
+   |                         + agent: .opencode/agents/watch.md
    |                         drives logged-in Brave via CDP (:9222)
    |                         => searches LinkedIn, stores fresh jobs in Notion
    |-- run-apply.ps1  -->  opencode headless session
-                            + prompt: opencode-apply-prompt.md
+                            + agent: .opencode/agents/apply.md
                             + answers.md (screening question bank)
                             => applies to every pending row, records outcome
 ```
@@ -68,15 +68,15 @@ or `npm start` (set the env vars from `.env.example` first).
    Put both IDs in `.env` / prompts.
 2. **Config** - copy `.env.example` to `.env` and fill in `NOTION_TOKEN` and
    `NOTION_DATABASE_ID`. Never hardcode the token anywhere else.
-3. **opencode** - install opencode and make sure `opencode.exe` is on PATH
-   (the wrappers call it headless: `opencode run --model <model> <prompt>`).
+3. **opencode** - install opencode and make sure it is on PATH
+   (the wrappers call it headless: `opencode run --dir <repo> --agent <agent> <goal>`).
 4. **Brave + CDP** - the pipeline drives your logged-in Brave over CDP on port
    9222. `run-watch.ps1` / `run-apply.ps1` start or restart Brave with the debug
    flag automatically. Log into LinkedIn and Gmail in that browser profile.
-5. **Personalize** - edit `answers.md` (screening answers), the CV matrix and the
-   Gmail sender account in `opencode-apply-prompt.md`, and the search keywords /
-   locations in `opencode-prompt.md`. These contain the owner's personal data by
-   default - replace before use.
+5. **Personalize** - edit `answers.md` (screening answers + Open Questions), the
+   CV matrix, contact details and Gmail sender account in
+   `.opencode/agents/apply.md`, and the search keywords/locations in
+   `.opencode/agents/watch.md`. Replace before use.
 6. **Gmail sending** - follow `docs/EMAIL_SETUP.md`: enable 2-Step Verification,
    create a Google App Password, put `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `.env`.
    Email sending runs over SMTP with IMAP for reply detection - deterministic
@@ -85,15 +85,18 @@ or `npm start` (set the env vars from `.env.example` first).
 7. **Schedule** - `START Job Watcher.bat` enables the hourly Windows task
    (`LinkedInJobWatcher`), `STOP Job Watcher.bat` disables it and kills any
    running session. Logs: `opencode-runs.log` (search) and `apply-runs.log` (apply).
+   Health checks: `opencode run --agent watch "SELFTEST"` (scraper health) and
+   `opencode run --agent apply "SELFCHECK"` (Notion schema + mailer identity).
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `opencode-prompt.md` | Full instructions for the hourly watch session |
-| `opencode-apply-prompt.md` | Full instructions for the apply session (CV matrix, email rules, ping flow, follow-ups) |
-| `answers.md` | Screening question bank - source of truth for form answers |
-| `run-all.ps1` / `run-watch.ps1` / `run-apply.ps1` | Session runners (lock files, Brave/CDP check, opencode launch) |
+| `.opencode/agents/watch.md` | The watch agent: hourly searches, gates, scrape-health watchdog + SELFTEST, uncapped storage |
+| `.opencode/agents/apply.md` | The apply agent: queue drain (newest first), Easy Apply / external ATS forms / email via `tools\mailer.ps1`, ping flow, follow-ups + SELFCHECK |
+| `answers.md` | Screening question bank + self-growing Open Questions - source of truth for form answers |
+| `tools/mailer.ps1` | SMTP send / IMAP draft / IMAP reply-check helper (Google App Password) |
+| `run-all.ps1` / `run-watch.ps1` / `run-apply.ps1` | Session runners (lock files, Brave/CDP check, `opencode run --agent ...`) |
 | `start/stop-watcher.ps1` + `START/STOP .bat` | Enable/disable the hourly scheduled task |
 | `watcher.mjs` | Legacy standalone Node watcher |
 | `Dockerfile` | Container for the legacy watcher |
@@ -115,3 +118,4 @@ Automating LinkedIn may violate their Terms of Service and job boards may have
 their own rules. This project was built for personal use; share and use it
 responsibly and at your own risk. Don't spam recruiters - the world has enough
 of that already.
+
