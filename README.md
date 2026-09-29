@@ -1,6 +1,8 @@
-# Job Watcher
+# Eye Hire
 
-An autonomous LinkedIn job watcher **and auto-applier** for the UAE + Egypt market.
+**Eye Hire** (previously "Job Watcher" - you may still see that name in legacy
+script/log labels; it is the same system) is an autonomous LinkedIn job watcher
+**and auto-applier** for the UAE + Egypt market.
 Every hour it searches fresh job posts and "we are hiring" feed posts, filters for
 relevant software-engineering roles, stores them in a Notion database, then applies
 on your behalf - LinkedIn Easy Apply, application forms, or hook-driven emails sent
