@@ -125,10 +125,24 @@ A row must NEVER be left with an empty Apply Status or empty Apply Notes after p
 
 ## Step 8 - Email applications (hook-driven, spam-safe)
 
+### PRIMARY - Gmail API (tools\gmail.ps1)
+
+1. ACCOUNT CHECK: run `pwsh -File "<repo>\tools\gmail.ps1" whoami`. It must return dev.elsharqawy@gmail.com. If it returns any other account: do not email - Apply Status = "Manual Needed", Apply Notes = "Gmail account mismatch (<what whoami returned>)", move on. If it errors with auth/token problems: try once more, then use the browser FALLBACK below.
+2. Write the email body to a temp file (e.g. $env:TEMP\mail-<company>.txt, UTF-8), then send:
+
+pwsh -File "<repo>\tools\gmail.ps1" send -To "<recipient>" -Subject "<subject>" -BodyFile "<temp file>" -Attach "<CV path>"
+
+3. Parse the JSON result:
+   - ok:true -> stamp the row: Applied Via = "Email", "Email Sent At" = now, Apply Status = "Applied", Apply Notes += " | gmail msg <id> thread <threadId>" (the thread id is MANDATORY - Step 9 needs it).
+   - Per-recipient cap: one SENT email per recipient address per run. If a row is blocked because another row already sent to the same address this run: same parameters with the `draft` subcommand instead -> Apply Status = "Waiting For You", Apply Notes = "API draft ready (draft <id>) - USER: open Gmail Drafts, verify and press Send", ping once (Step 5b draft-row exception: no polling), move on.
+   - ok:false -> retry once; still failing -> browser FALLBACK below; if that also fails -> Apply Status = "Failed" (auto-retried next run).
+4. If a leftover API draft for the same recipient exists from an earlier run (check Drafts label or row notes), do not create another - reference/verify the existing one.
+
+### FALLBACK - browser compose (only if the Gmail API fails twice)
+
 Open Gmail DIRECTLY at https://mail.google.com/mail/u/2/#inbox - account index u/2 is dev.elsharqawy@gmail.com (u/0 is dev.elbehery@gmail.com, u/1 is hmedel775@gmail.com - NEVER send from those). Verify the inbox title/avatar shows dev.elsharqawy@gmail.com before composing, and verify the compose window's From account is dev.elsharqawy@gmail.com before sending. If the account indexes ever shift, find the right index by opening the avatar menu (top-right) and using the account list - but always end up composing from dev.elsharqawy@gmail.com. If dev.elsharqawy@gmail.com is NOT signed in at all: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail account elsharqawy not signed in" and move on. If the compose would go out from any OTHER account: do not send - set Apply Status = "Manual Needed" with Apply Notes "Gmail account mismatch" and move on.
 
 Rules:
-- One SENT email per recipient address per run. When a row is blocked from SENDING by this cap (another row already sent to the same address this run), do NOT mark it Failed - compose it fully (To/Subject/Body/CV) and SAVE AS DRAFT instead (a draft sends nothing), then Apply Status = "Waiting For You" with notes "Draft ready in Gmail (elsharqawy) - per-recipient send cap - USER: attach CV if missing and send when spaced out". Two rows must never both SEND to the same address in one run.
 - Max 2 attempts per compose/send flow, then status "Failed".
 
 ### Exact compose mechanics (follow in this order - no improvisation)
@@ -164,9 +178,14 @@ BANNED phrases: "I hope this email finds you well", "I am writing to express", "
 ## Step 9 - Follow-ups (one per application, reply-aware)
 
 A row is eligible for follow-up when: Applied Via = "Email", "Email Sent At" is 3+ days ago, and "Follow-Up Sent At" is empty.
-1. Open Gmail, find the sent thread (search: to:<recipient> subject:<role title> - Mohamed Ahmed).
-2. If the recipient REPLIED in the thread: do NOT follow up. Set Apply Notes += " | Reply received on <date> - needs personal response from user", trigger the PING flow (Step 5b) with a "Reply from <company> - respond personally" message, and move on.
-3. If NO reply: send ONE short follow-up IN THE SAME THREAD (click Reply on the existing thread - never a new compose, the thread continuity protects deliverability). 2-3 sentences, plain text, NO attachment, NO links: e.g. "Hi <name>, just floating this back to the top of your inbox for the <role> role. Mohamed's still very interested - based in Dubai and available to start immediately. Happy to jump on a quick call whenever suits you."
+1. THREAD/REPLY CHECK (API): if Apply Notes contain "thread <threadId>", run `pwsh -File "<repo>\tools\gmail.ps1" check-reply -ThreadId <threadId>`. If notes lack the thread id, recover it: `find-sent -To "<recipient>" -Subject "<original subject>"` (returns id, threadId, messageIdHeader - add them to the notes).
+2. If replies > 0: do NOT follow up. Set Apply Notes += " | Reply received from <lastFrom> - needs personal response from user", trigger the PING flow (Step 5b) with a "Reply from <company> - respond personally" message, and move on.
+3. If replies = 0: send ONE short follow-up IN THE SAME THREAD via the API - write the body to a temp file, then:
+
+pwsh -File "<repo>\tools\gmail.ps1" send -To "<recipient>" -Subject "Re: <original subject>" -InReplyTo "<messageIdHeader from find-sent>" -BodyFile "<temp file>"
+
+(NO -Attach: never attach anything to a follow-up.) 2-3 sentences, plain text, NO links: e.g. "Hi <name>, just floating this back to the top of your inbox for the <role> role. Mohamed's still very interested - based in Dubai and available to start immediately. Happy to jump on a quick call whenever suits you."
+BROWSER FALLBACK (API failing): click Reply on the existing sent thread in Gmail (never a new compose) and send the same short message from dev.elsharqawy@gmail.com.
 4. Stamp "Follow-Up Sent At" = now. ONE follow-up per application, EVER - never a second one.
 
 ## Limits
