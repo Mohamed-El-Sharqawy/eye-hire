@@ -77,7 +77,12 @@ or `npm start` (set the env vars from `.env.example` first).
    Gmail sender account in `opencode-apply-prompt.md`, and the search keywords /
    locations in `opencode-prompt.md`. These contain the owner's personal data by
    default - replace before use.
-6. **Schedule** - `START Job Watcher.bat` enables the hourly Windows task
+6. **Gmail sending** - follow `docs/EMAIL_SETUP.md`: enable 2-Step Verification,
+   create a Google App Password, put `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `.env`.
+   Email sending runs over SMTP with IMAP for reply detection - deterministic
+   sends with CV attachments and thread-aware follow-ups. Browser Gmail stays as
+   a fallback.
+7. **Schedule** - `START Job Watcher.bat` enables the hourly Windows task
    (`LinkedInJobWatcher`), `STOP Job Watcher.bat` disables it and kills any
    running session. Logs: `opencode-runs.log` (search) and `apply-runs.log` (apply).
 
