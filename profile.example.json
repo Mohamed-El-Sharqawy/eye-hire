@@ -1,0 +1,43 @@
+{
+  "_comment": "Copy this file to profile.json (it is gitignored - never commit it). The setup agent (.opencode/agents/setup.md) creates and edits it for you. The watcher derives EVERYTHING from this file: search URLs, role gates, locations, caps. No profile.json = no runs.",
+  "name": "Jane Doe",
+  "searchKeywords": "\"full stack\" OR frontend OR backend",
+  "roleFamilies": [
+    "frontend engineer / frontend developer / React / Next.js developer roles",
+    "full-stack engineer roles",
+    "backend engineer / backend developer (software: Node.js, Python, Java, Go, etc.)"
+  ],
+  "seniority": "mid-senior individual contributor (senior preferred)",
+  "maxYearsExperience": 7,
+  "leadershipRolesOk": false,
+  "excludedRoles": [
+    "product roles",
+    "Shopify-only",
+    "platform engineer / SRE / DevOps-only",
+    "data-engineer-only",
+    "mobile-only (iOS/Android/Flutter)",
+    "customer support, sales, marketing, product management, design-only, data entry, HR",
+    "anything unclear from title+text"
+  ],
+  "postedWithin": "r86400",
+  "postedWithinHuman": "last 24 hours (LinkedIn f_TPR=r86400)",
+  "distanceKm": 100,
+  "employmentLevels": "1,2,3,4",
+  "locations": [
+    { "name": "Dubai", "query": "Dubai, Dubai, United Arab Emirates" },
+    { "name": "Abu Dhabi", "query": "Abu Dhabi Emirate, United Arab Emirates" }
+  ],
+  "feedPosts": {
+    "enabled": true,
+    "maxAgeHuman": "keep only posts up to 1 hour old ('just now', 'Xm', exactly '1h')",
+    "searches": [
+      { "name": "fullstack local", "keywords": "fullstack dubai" },
+      { "name": "hiring frontend", "keywords": "\"we are hiring\" frontend uae" }
+    ]
+  },
+  "caps": { "newJobsPerRun": 20, "newPostsPerRun": 10 },
+  "notion": {
+    "locationProperty": "Emirate",
+    "applyStatusOnSave": "New"
+  }
+}

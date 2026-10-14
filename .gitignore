@@ -1,7 +1,16 @@
 node_modules
 .env
+profile.json
 *.log
 *.lock
 *.pid
 *.pdf
 __pycache__/
+
+# personal caches + runtime state (never commit)
+.known_links.txt
+.dubai_*.json
+.runstart
+.session_start
+STOP
+.opencode/browser/

@@ -1,122 +1,105 @@
 # Eye Hire
 
 **Eye Hire** (previously "Job Watcher" - you may still see that name in legacy
-script/log labels; it is the same system) is an autonomous LinkedIn job watcher
-**and auto-applier** for the UAE + Egypt market.
-Every hour it searches fresh job posts and "we are hiring" feed posts, filters for
-relevant software-engineering roles, stores them in a Notion database, then applies
-on your behalf - LinkedIn Easy Apply, application forms, or hook-driven emails sent
-from your own Gmail - and tracks every outcome in Notion.
+script/log labels; it is the same system) is an autonomous, **personalized**
+LinkedIn job watcher.
+Every hour it searches fresh job posts and "we are hiring" feed posts, filters
+them through **your** profile, and stores the hits in a Notion database.
+
+Nothing about you is hardcoded: your roles, markets, keywords, experience cap
+and credentials live in two gitignored files created during onboarding
+(`profile.json` + `.env`). Anyone can clone this repo and configure their own
+watcher in one session.
+
+## Quick start (fresh clone)
+
+````
+git clone https://github.com/Mohamed-El-Sharqawy/eye-hire.git
+cd eye-hire
+opencode        # then just say: setup
+````
+
+The **setup interview** (`.opencode/agents/setup.md`) asks you a handful of
+questions and configures everything:
+
+1. **Profile** - target role families, stack keywords, seniority, max years of
+   experience, leadership roles yes/no, roles to always exclude.
+2. **Markets** - which cities/countries to search (e.g. the 7 UAE emirates +
+   Cairo, or anywhere else), freshness window, distance.
+3. **Feed posts** - optionally watch "we are hiring" posts per market.
+4. **Caps** - max new jobs/posts stored per hourly run (defaults: 20 + 10).
+5. **Notion credentials** - walks you through creating an integration, creates
+   the jobs database (and optional run-log database) with the right schema,
+   validates the token live, and writes `.env` for you. The token is never
+   printed back.
+
+It finishes by telling you exactly what to do next (log into LinkedIn,
+`SELFTEST`, first run, hourly schedule).
+
+Every session you start in the repo checks onboarding state first
+(see `AGENTS.md`), so you can never accidentally run an unconfigured watcher.
 
 ## Architecture
 
-The project has two components:
-
-### 1. Agentic pipeline (primary, Windows)
-
-```
+````
  Scheduled Task "LinkedInJobWatcher" (hourly)
         |
         v
- run-all.ps1
-   |-- run-watch.ps1  -->  opencode headless session (glm-5.3-flash)
-   |                         + agent: .opencode/agents/watch.md
-   |                         drives logged-in Brave via CDP (:9222)
-   |                         => searches LinkedIn, stores fresh jobs in Notion
-   |-- run-apply.ps1  -->  opencode headless session
-                            + agent: .opencode/agents/apply.md
-                            + answers.md (screening question bank)
-                            => applies to every pending row, records outcome
-```
+ run-watch.ps1  -->  opencode headless session (your default model)
+                     + agent: .opencode/agents/watch.md
+                     reads profile.json + .env at every session start
+                     drives your logged-in browser via CDP (:9222)
+                     => searches LinkedIn, stores fresh jobs in Notion
+````
 
-- **Watch** - 8 job searches (7 UAE emirates + Cairo, past 24 h) + 4 "we are hiring"
-  content searches (past hour). Gates: freshness, role relevance (software eng only),
-  location (UAE/Egypt only). Dedupe by link against Notion. Storage is uncapped:
-  everything that passes the gates gets a row with `Apply Status = New`.
-- **Apply** - processes the whole pending queue. Picks 1 of 4 CVs
-  (Frontend / Full-Stack x UAE / Egypt), answers screening questions from
-  `answers.md`, applies via Easy Apply -> Gmail email -> external URL.
-  Any required field it cannot answer (salary by policy, or anything missing from
-  the answer bank) is never guessed: it saves state, pops a Windows notification
-  (MessageBox + beeps), marks the row `Waiting For You`, and resumes automatically
-  once you fill it in. Emails that cannot be auto-sent are left as ready-to-send
-  Gmail drafts. Failed rows auto-retry once. Applied-by-email rows get one
-  spam-safe follow-up after 3 days (same thread, only if no reply).
+- **Watch** - one job search per location in your profile (past 24 h by default)
+  + one content search per feed-post keyword. Gates: freshness, role relevance
+  (YOUR role families), location (YOUR markets). Dedupe by link against Notion.
+  Caps from your profile - only links not already in Notion count toward them,
+  and every stored row gets your configured `Apply Status` (default `New`).
+- **Config-driven** - the watch agent derives every search URL, gate and cap
+  from `profile.json`. To search differently, update the profile (ask the setup
+  agent "update my profile") - never edit tracked files to personalize.
 
-### 2. Standalone watcher (legacy, cross-platform)
+### Standalone watcher (legacy, cross-platform)
 
 `watcher.mjs` - a simple Node + Playwright script (guest LinkedIn access) that
-searches 7 emirates hourly, extracts emails/phones from fresh job descriptions and
-saves them to Notion. Kept as a lightweight fallback / reference; it does not apply.
+searches hourly, extracts emails/phones from fresh job descriptions and saves
+them to Notion. Kept as a lightweight fallback / reference.
 
-```
+````
 docker build -t job-watcher .
 docker run --env-file .env -p 3000:3000 job-watcher
-```
+````
 
 or `npm start` (set the env vars from `.env.example` first).
-
-## Setup
-
-1. **Notion** - create an integration, get a token, and create (or pick) a database.
-   Share the database with the integration. The database uses these properties
-   (the apply session auto-creates the missing ones):
-   `Name` (title), `Company`, `Emirate` (select), `Link` (url), `Email`, `Phone`,
-   `Found At` (date), `Search URL` (url), `Apply Status` (select: New / Applied /
-   Manual Needed / Not Relevant / Failed / Waiting For You), `Apply Notes`,
-   `CV Used`, `Needs Manual Apply` (checkbox), `Apply URL`, `Applied Via`,
-   `Email Sent At` (date), `Follow-Up Sent At` (date).
-   A second database (optional) is used as the run log.
-   Put both IDs in `.env` / prompts.
-2. **Config** - copy `.env.example` to `.env` and fill in `NOTION_TOKEN` and
-   `NOTION_DATABASE_ID`. Never hardcode the token anywhere else.
-3. **opencode** - install opencode and make sure `opencode.exe` is on PATH
-   (the wrappers call it headless: `opencode run --model <model> <prompt>`).
-4. **Brave + CDP** - the pipeline drives your logged-in Brave over CDP on port
-   9222. `run-watch.ps1` / `run-apply.ps1` start or restart Brave with the debug
-   flag automatically. Log into LinkedIn and Gmail in that browser profile.
-5. **Personalize** - edit `answers.md` (screening answers + Open Questions), the
-   CV matrix, contact details and Gmail sender account in
-   `.opencode/agents/apply.md`, and the search keywords/locations in
-   `.opencode/agents/watch.md`. These contain the owner's personal data by
-   default - replace before use.
-6. **Gmail sending** - follow `docs/EMAIL_SETUP.md`: enable 2-Step Verification,
-   create a Google App Password, put `GMAIL_USER` + `GMAIL_APP_PASSWORD` in `.env`.
-   Email sending runs over SMTP with IMAP for reply detection - deterministic
-   sends with CV attachments and thread-aware follow-ups. Browser Gmail stays as
-   a fallback.
-7. **Schedule** - `START Job Watcher.bat` enables the hourly Windows task
-   (`LinkedInJobWatcher`), `STOP Job Watcher.bat` disables it and kills any
-   running session. Logs: `opencode-runs.log` (search) and `apply-runs.log` (apply).
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `.opencode/agents/watch.md` | The watch agent: hourly searches, gates, scrape-health watchdog, SELFTEST mode, uncapped storage |
-| `.opencode/agents/apply.md` | The apply agent: queue drain (newest first), Easy Apply / external ATS forms / email via `tools\mailer.ps1`, ping flow, follow-ups, SELFCHECK mode |
-| `answers.md` | Screening question bank + Open Questions (self-growing) - source of truth for form answers |
-| `tools/mailer.ps1` | SMTP send / IMAP draft / IMAP reply-check helper (Google App Password) |
-| `run-all.ps1` / `run-watch.ps1` / `run-apply.ps1` | Session runners (lock files, Brave/CDP check, `opencode run --agent ...`) |
-| `start/stop-watcher.ps1` + `START/STOP .bat` | Enable/disable the hourly scheduled task |
+| `AGENTS.md` | Session-start rules: onboarding check, secret-safety, quick reference |
+| `.opencode/agents/setup.md` | The onboarding interview: profile questions, Notion walkthrough, next-steps briefing |
+| `.opencode/agents/watch.md` | The watch agent: config-driven searches/gates/caps, scrape-health watchdog, SELFTEST mode |
+| `profile.example.json` | Documented shape of `profile.json` (your copy is gitignored) |
+| `.env.example` | Documented shape of `.env` (NOTION_TOKEN, database ids) |
+| `run-watch.ps1` | Session runner (portable paths, first-run guard, lock file, browser/CDP check) |
+| `start/stop-watcher.ps1` + `START/STOP .bat` | Enable/disable the hourly scheduled task (auto-creates it on a new machine) |
+| `run-watch-hidden.vbs` | Windowless launcher (self-locating - works in any clone path) |
 | `watcher.mjs` | Legacy standalone Node watcher |
 | `Dockerfile` | Container for the legacy watcher |
 
 ## Safety design
 
-- Apply guard rails: role + location gates, "one bad application is worse than one
-  missed", mandatory outcome status + notes on every processed row, never touch
-  rows that already have a final status.
-- `Manual Needed` is reserved for physical blockers only (captcha, login walls,
-  assessments). Missing *answers* go through the answer bank or the ping flow.
-- Salary is never auto-entered. Ever.
-- Email deliverability: plain text, no link spam, varied wording, one sent email
-  per recipient per run, at most one follow-up ever, sent in the same thread.
+- Watch gates: freshness, role relevance (your profile only), your markets,
+  experience and leadership filters - when in doubt, skip.
+- Dedupe by normalized link against Notion - a known link is never re-opened.
+- The `STOP` file pauses everything: every run checks it before each search.
+- Secrets (`NOTION_TOKEN`) and personal data (`profile.json`) are gitignored and
+  are never printed to chat or logs.
 
 ## Disclaimer
 
 Automating LinkedIn may violate their Terms of Service and job boards may have
 their own rules. This project was built for personal use; share and use it
-responsibly and at your own risk. Don't spam recruiters - the world has enough
-of that already.
-
+responsibly and at your own risk.

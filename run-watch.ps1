@@ -1,13 +1,32 @@
 $ErrorActionPreference = "Continue"
-$dir = "D:\UPWORK\job-watcher"
+$dir = $PSScriptRoot
 $log = "$dir\opencode-runs.log"
 $lock = "$dir\run.lock"
 
 function Log($m) { "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $m" | Add-Content $log }
 
+# STOP file: create <repo>\STOP to pause; delete it to resume
+if (Test-Path "$dir\STOP") { Log "STOP file present - skipping this run"; exit 0 }
+
+# First-run guard: the watcher is config-driven. No profile.json / .env = no run.
+$missing = @()
+if (-not (Test-Path "$dir\profile.json")) { $missing += "profile.json" }
+if (-not (Test-Path "$dir\.env")) { $missing += ".env" }
+if ($missing.Count -gt 0) {
+    Log "NOT CONFIGURED - missing $($missing -join ', ')"
+    Write-Host "Eye Hire is not configured yet (missing: $($missing -join ', '))." -ForegroundColor Yellow
+    Write-Host "Run the onboarding interview once:"
+    Write-Host "  1. open a terminal in this folder"
+    Write-Host "  2. run: opencode"
+    Write-Host "  3. say: setup"
+    Write-Host "It asks about your profile (roles, markets, caps), creates your Notion"
+    Write-Host "database, validates the token, and writes profile.json + .env for you."
+    exit 1
+}
+
 if (Test-Path $lock) {
     $age = (Get-Date) - (Get-Item $lock).LastWriteTime
-    if ($age.TotalMinutes -lt 120) { Log "previous run still active (lock age $([int]$age.TotalMinutes) min), skipping"; exit 0 }
+    if ($age.TotalMinutes -lt 70) { Log "previous run still active (lock age $([int]$age.TotalMinutes) min), skipping"; exit 0 }
 }
 New-Item $lock -Force | Out-Null
 try {
@@ -33,22 +52,30 @@ if (-not $cdpUp) {
     }
     $brave = "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
     if (-not (Test-Path $brave)) { $brave = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe" }
+    if (-not (Test-Path $brave)) { $brave = "C:\Program Files\Google\Chrome\Application\chrome.exe" }
+    if (-not (Test-Path $brave)) { $brave = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" }
     if (Test-Path $brave) {
-        Log "starting Brave with CDP"
+        Log "starting browser with CDP"
         Start-Process $brave -ArgumentList "--remote-debugging-port=9222", "--restore-last-session"
         Start-Sleep -Seconds 10
     } else {
-        Log "Brave not found, aborting"
+        Log "Brave/Chrome not found, aborting"
         exit 1
     }
 }
 
 $cdpUp = (Test-NetConnection 127.0.0.1 -Port 9222 -InformationLevel Quiet -WarningAction SilentlyContinue)
-if (-not $cdpUp) { Log "CDP still down after Brave start, aborting"; exit 1 }
+if (-not $cdpUp) { Log "CDP still down after browser start, aborting"; exit 1 }
+
+# Locate opencode (PATH first, then the common bun install location)
+$oc = Get-Command opencode -ErrorAction SilentlyContinue
+if ($oc) { $oc = $oc.Source } elseif (Test-Path "$env:USERPROFILE\.bun\bin\opencode.exe") { $oc = "$env:USERPROFILE\.bun\bin\opencode.exe" } else { Log "opencode.exe not found on PATH or ~/.bun/bin - install opencode first"; exit 1 }
 
 Log "=== starting watch agent ==="
 Set-Location $dir
-& "C:\Users\devel\.bun\bin\opencode.exe" run --dir $dir --agent watch -m "zai-coding-plan/glm-5.3-flash" "Run the hourly LinkedIn watch session now." *>> $log
+$modelArgs = @()
+if ($env:WATCH_MODEL) { $modelArgs = @("-m", $env:WATCH_MODEL) }
+& $oc run --agent watch @modelArgs "Run the hourly LinkedIn watch session now." *>> $log
 Log "=== watch agent finished (exit $LASTEXITCODE) ==="
 
 } finally {
