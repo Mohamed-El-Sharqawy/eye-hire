@@ -67,9 +67,17 @@ if (-not $cdpUp) {
 $cdpUp = (Test-NetConnection 127.0.0.1 -Port 9222 -InformationLevel Quiet -WarningAction SilentlyContinue)
 if (-not $cdpUp) { Log "CDP still down after browser start, aborting"; exit 1 }
 
-# Locate opencode (PATH first, then the common bun install location)
-$oc = Get-Command opencode -ErrorAction SilentlyContinue
-if ($oc) { $oc = $oc.Source } elseif (Test-Path "$env:USERPROFILE\.bun\bin\opencode.exe") { $oc = "$env:USERPROFILE\.bun\bin\opencode.exe" } else { Log "opencode.exe not found on PATH or ~/.bun/bin - install opencode first"; exit 1 }
+# Locate opencode: prefer the known bun install, then any PATH .exe, then anything on PATH.
+# (Resolving a wrong shim prints CLI help and exits 1 - the 2026-10-14 10:20 failure.)
+$oc = $null
+if (Test-Path "$env:USERPROFILE\.bun\bin\opencode.exe") { $oc = "$env:USERPROFILE\.bun\bin\opencode.exe" }
+if (-not $oc) {
+    foreach ($cmd in (Get-Command opencode -All -ErrorAction SilentlyContinue)) {
+        if ($cmd.Source -like "*.exe") { $oc = $cmd.Source; break }
+    }
+}
+if (-not $oc) { $c = Get-Command opencode -ErrorAction SilentlyContinue; if ($c) { $oc = $c.Source } }
+if (-not $oc) { Log "opencode.exe not found (looked in ~/.bun/bin and PATH) - install opencode first"; exit 1 }
 
 Log "=== starting watch agent ==="
 Set-Location $dir

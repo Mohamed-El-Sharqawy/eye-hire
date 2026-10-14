@@ -61,6 +61,38 @@ Never hammer: no rapid refreshes, no parallel tabs, no instant back-to-back open
 
 If the goal message is "SELFTEST": run ONLY Step 1 for the FIRST location in `$script:p.locations`, print every parsed card (title, company, posted-time), state the results-header count vs parsed count, and end with "SELFTEST OK: <parsed>/<header> cards" or "SELFTEST FAILED: selector drift". Do not touch Notion. Do not run anything else. (SELFTEST works even without Notion configured - it only needs profile.json for the location.)
 
+## BROWSER BRIDGE + RECOVERY (critical - do this before Step 0)
+
+All LinkedIn access goes through the browser bridge (browser_* tools). A browser
+(usually Brave, with the OpenCode Browser extension) must show up in
+`browser_targets()`. Brave can be running yet DETACHED (its extension WebSocket
+died when the previous bridge host exited) - a running Brave does NOT mean a
+connected browser.
+
+At session start (after Step -1, before Step 0): call `browser_targets()`.
+- If a browser is listed -> continue normally.
+- If EMPTY -> run BRIDGE RECOVERY (max 2 attempts), then re-check:
+
+```powershell
+Get-Process brave -ErrorAction SilentlyContinue | Stop-Process -Force
+Start-Sleep -Seconds 3
+$brave = "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
+if (-not (Test-Path $brave)) { $brave = "$env:LOCALAPPDATA\BraveSoftware\Brave-Browser\Application\brave.exe" }
+if (-not (Test-Path $brave)) { $brave = "C:\Program Files\Google\Chrome\Application\chrome.exe" }
+if (-not (Test-Path $brave)) { $brave = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe" }
+if (Test-Path $brave) { Start-Process $brave -ArgumentList "--remote-debugging-port=9222","--restore-last-session" }
+Start-Sleep -Seconds 25
+"brave restarted, re-checking bridge"
+```
+
+Then call `browser_targets()` again. Still empty -> attempt 2 (same commands).
+Still empty after 2 attempts -> abort cleanly (run-log row + alarm ping + beep),
+with summary "ABORTED: bridge recovery failed - extension not connected. Open
+Brave, click the OpenCode Browser extension, confirm it shows connected, re-run."
+
+Recovery notes: `--restore-last-session` brings the user's tabs back. Never skip
+recovery and search anyway, and never fake results - no browser means no run.
+
 ## Step 0 - Load known links (BEFORE any searching)
 
 Query the Notion database `$env:NOTION_DATABASE_ID` ONCE and collect every existing `Link` url value (paginate: page_size 100, follow `has_more` / `next_cursor` until done). Strip everything after "?" from each url. Keep the list in `$known`.
